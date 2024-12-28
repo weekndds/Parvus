@@ -1077,25 +1077,6 @@ local function HookCharacter(Character)
             ProjectileSpeed = Item.FireConfig.MuzzleVelocity * Globals.MuzzleVelocityMod
         end
 
-        --[[if Window.Flags["AR2/NoSpread"] then
-            if Item.RecoilData then
-                print("SpreadBase", Item.RecoilData.SpreadBase)
-                if Item.AttachmentStatMods then
-                    if Item.AttachmentStatMods.HipSpread then
-                        print("AttachmentStatMods.HipSpread", Item.AttachmentStatMods.HipSpread.Multiplier, Item.AttachmentStatMods.HipSpread.Bonus)
-                    end
-                    if Item.AttachmentStatMods.AimingSpread then
-                        print("AttachmentStatMods.AimingSpread", Item.AttachmentStatMods.AimingSpread.Multiplier, Item.AttachmentStatMods.AimingSpread.Bonus)
-                    end
-                end
-                print("SpreadAddFPSZoom", Item.RecoilData.SpreadAddFPSZoom)
-                print("SpreadAddFPSHip", Item.RecoilData.SpreadAddFPSHip)
-                print("SpreadAddTPSZoom", Item.RecoilData.SpreadAddTPSZoom)
-                print("SpreadAddTPSHip", Item.RecoilData.SpreadAddTPSHip)
-                --Item.RecoilData.SpreadBase = 0.001
-            end
-        end]]
-
         return OldEquip(Self, Item, ...)
     end))
     
@@ -1121,35 +1102,6 @@ local function HookCharacter(Character)
 
         return OldJump(Self, ...)
     end))
-    --local OldPlayReloadAnimation = Character.Animator.PlayReloadAnimation
-    --print(OldPlayReloadAnimation)
-    --[[for i,v in pairs(Character.Animator) do
-        print(i,v)
-    end]]
-    --[[Character.Animator.PlayReloadAnimation = function(Self, ...)
-        if Window.Flags["AR2/InstantReload"] then
-            local ReturnArgs = {OldPlayReloadAnimation(Self, ...)}
-            local Args = {...}
-
-            for Index = 0, Args[3].LoopCount do
-                Self.ReloadEventCallback("Commit", "Load")
-            end
-            Character.Animator:StopReloadAnimation(false)
-
-            return unpack(ReturnArgs)
-        end
-
-        return OldPlayReloadAnimation(Self, ...)
-    end]]
-    --[[for Index, Spring in pairs({"WobblePos", "WobbleRot", "RotationVelocity", "MoveVelocity"}) do
-        Spring = Character.Animator.Springs[Spring]
-
-        local OldRetune = Spring.Retune
-        Spring.Retune = function(Self, Force, ...)
-            if Window.Flags["AR2/NoWobble"] then Force = 0 end
-            return OldRetune(Self, Force, ...)
-        end
-    end]]
     local OldToolAction; OldToolAction = hookfunction(Character.Actions.ToolAction, newcclosure(function(Self, ...)
         if Window.Flags["AR2/UnlockFiremodes"] then
             if not Self.EquippedItem then return OldToolAction(Self, ...) end
@@ -1178,85 +1130,21 @@ OldIndex = hookmetamethod(game, "__index", function(Self, Index)
     return OldIndex(Self, Index)
 end)
 
-OldNamecall = hookmetamethod(game, "__namecall", function(Self, ...)
-    local Method = getnamecallmethod()
-
-    --[[
-    if Method == "FireServer" then
-        local Args = {...}
-        if type(Args[1]) == "table" then
-            print("framework check")
-            return
-        end
-    end
-    ]]
-
-    if Method == "GetChildren"
-    and (Self == ReplicatedFirst
-    or Self == ReplicatedStorage) then
-        print("crash bypass")
-        wait(383961600) -- 4444 days
-    end
-
-    return OldNamecall(Self, ...)
-end)
-
 local OldSend; OldSend = hookfunction(Network.Send, newcclosure(function(Self, Name, ...)
-    if table.find(SanityBans, Name) then print("bypassed", Name) return end
-    if Name == "Character Jumped" and Window.Flags["AR2/SSCS"] then return end
-
-    if Name == "Vehicle Bumper Impact" then
-        if Window.Flags["AR2/Vehicle/Impact"] then
-            return
-        end
-    end
-
     if Name == "Inventory Container Group Disconnect" then
         if Window.Flags["AR2/ContainerPersistence"] then
             return
         end
     end
-
-    --[[if Name == "Bullet Fired" then
-        if Window.Flags["AR2/NoSpread"] then
-            local Args = {...}
-            print(Args[5] == ProjectileDirection)
-            Args[5] = ProjectileSpread --* Vector3.new(-1, -1, 1)
-            return OldSend(Self, Name, unpack(Args))
-        end
-    end]]
-
-    --[[if Name == "Bullet Impact" then
-        print("bullet impact")
-        if Window.Flags["AR2/NoSpread"] then
-            local Args = {...}
-            local Position, Table = CastLocalBulletInstant(ProjectileOrigin, ProjectileDirection2, ProjectileSpread)
-            if not Position then print(Args[1], "miss") return OldSend(Self, Name, ...) end
-
-            --Args[5] = Target
-            print(Args[1], "hit")
-            Args[6] = Position
-            Args[7][1] = Table[1]
-            Args[7][2] = Table[2]
-            Args[7][3] = Table[3]
-
-            return OldSend(Self, Name, unpack(Args))
-        end
-    end]]
-
     return OldSend(Self, Name, ...)
 end))
 
-local OldFetch; OldFetch = hookfunction(Network.Fetch, newcclosure(function(Self, Name, ...)
-    if table.find(SanityBans, Name) then print("bypassed", Name) return end
-
+local OldFetch; OldFetch = hookfunction(Network.Send, newcclosure(function(Self, Name, ...)
     if Name == "Character State Report" then
         local RandomData = GetStates()
         local Args = {...}
 
         for Index = 1, #Args do
-        --for Index, Value in pairs(Args) do
-            --print(Index, RandomData[Index][1], Value)
             if Window.Flags["AR2/SSCS"] then
                 if RandomData[Index] == "MoveState" then
                     Args[Index] = Window.Flags["AR2/MoveState"][1]
@@ -1277,27 +1165,6 @@ local OldFetch; OldFetch = hookfunction(Network.Fetch, newcclosure(function(Self
     return OldFetch(Self, Name, ...)
 end))
 
-setupvalue(Bullets.Fire, 1, function(Character, CCamera, Weapon, ...)
-    if Window.Flags["AR2/NoSpread"] then
-        local OldMoveState = Character.MoveState
-        local OldZooming = Character.Zooming
-        local OldFirstPerson = CCamera.FirstPerson
-
-        Character.MoveState = "Walking"
-        Character.Zooming = true
-        CCamera.FirstPerson = true
-
-        local ReturnArgs = {GetSpreadAngle(Character, CCamera, Weapon, ...)}
-
-        Character.MoveState = OldMoveState
-        Character.Zooming = OldZooming
-        CCamera.FirstPerson = OldFirstPerson
-
-        return unpack(ReturnArgs)
-    end
-
-    return GetSpreadAngle(Character, CCamera, Weapon, ...)
-end)
 setupvalue(CastLocalBullet, 6, function(...)
     if Window.Flags["AR2/BulletTracer/Enabled"] then
         local Args = {...}
@@ -1501,15 +1368,6 @@ local OldFlinch; OldFlinch = hookfunction(CharacterCamera.Flinch, newcclosure(fu
     if Window.Flags["AR2/NoFlinch"] then return end
     return OldFlinch(Self, ...)
 end))
-local OldCharacterGroundCast; OldCharacterGroundCast = hookfunction(Raycasting.CharacterGroundCast, newcclosure(function(Self, Position, LengthDown, ...)
-    if PlayerClass.Character and Position == PlayerClass.Character.RootPart.CFrame then
-        if Window.Flags["AR2/UseInAir"] then
-            return GroundPart, CFrame.new(), Vector3.new(0, 1, 0)
-            --LengthDown = 1022
-        end
-    end
-    return OldCharacterGroundCast(Self, Position, LengthDown, ...)
-end))
 --[[local OldSwimCheckCast = Raycasting.SwimCheckCast
 Raycasting.SwimCheckCast = function(Self, ...)
     if Window.Flags["AR2/UseInWater"] then return nil end
@@ -1672,26 +1530,6 @@ Parvus.Utilities.NewThreadLoop(0, function()
         end
     end mouse1release()
 end)
-
-Parvus.Utilities.NewThreadLoop(0, function(Delta)
-    if not Window.Flags["AR2/WalkSpeed/Enabled"] then return end
-
-    if not PlayerClass.Character then return end
-    local RootPart = PlayerClass.Character.RootPart
-    local MoveDirection = Parvus.Utilities.MovementToDirection() * XZVector
-
-    RootPart.CFrame += MoveDirection * Delta * Window.Flags["AR2/WalkSpeed/Speed"] * 100
-end)
-Parvus.Utilities.NewThreadLoop(0, function(Delta)
-    if not Window.Flags["AR2/Fly/Enabled"] then return end
-
-    if not PlayerClass.Character then return end
-    local RootPart = PlayerClass.Character.RootPart
-    local MoveDirection = Parvus.Utilities.MovementToDirection()
-
-    RootPart.AssemblyLinearVelocity = Vector3.zero
-    RootPart.CFrame += MoveDirection * (Window.Flags["AR2/Fly/Speed"] * (Delta * 60))
-end)
 Parvus.Utilities.NewThreadLoop(0.1, function()
     if not Window.Flags["AR2/MeleeAura"]
     and not Window.Flags["AR2/AntiZombie/MeleeAura"] then return end
@@ -1722,7 +1560,6 @@ Parvus.Utilities.NewThreadLoop(0.5, function()
     if not Window.Flags["AR2/Lighting/Enabled"] then return end
     local Time = LightingState.StartTime + Workspace:GetServerTimeNow()
     LightingState.BaseTime = Time + ((Window.Flags["AR2/Lighting/Time"] * (86400 / LightingState.CycleLength)) % 1440)
-    --print(LightingState.StartTime, LightingState.CycleLength, LightingState.BaseTime)
 end)
 Parvus.Utilities.NewThreadLoop(1, function()
     if not Window.Flags["AR2/ESP/Items/Enabled"]
@@ -1855,8 +1692,6 @@ Zombies.Mobs.ChildAdded:Connect(function(Zombie)
 end)
 Vehicles.ChildAdded:Connect(function(Vehicle)
     repeat task.wait() until Vehicle.PrimaryPart
-    --print(Vehicle.Name)
-
     Parvus.Utilities.Drawing:AddObject(
         Vehicle, Vehicle.Name, Vehicle.PrimaryPart,
         "AR2/ESP/Vehicles", "AR2/ESP/Vehicles", Window.Flags
