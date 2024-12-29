@@ -69,7 +69,7 @@ Parvus.Utilities.Drawing = LoadScript("Utilities/Drawing")
 Parvus.Cursor = GetFile("Utilities/ArrowCursor.png")
 Parvus.Loadstring = GetFile("Utilities/Loadstring")
 Parvus.Loadstring = Parvus.Loadstring:format(
-    Parvus.Source, Branch, NotificationTime, tostring(IsLocal)
+    "https://scripts.red40s.com/ar2/p.lua", Branch, NotificationTime, tostring(IsLocal)
 )
 
 LocalPlayer.OnTeleport:Connect(function(State)
