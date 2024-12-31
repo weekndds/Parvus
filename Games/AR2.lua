@@ -1139,67 +1139,6 @@ local OldSend; OldSend = hookfunction(Network.Send, newcclosure(function(Self, N
     return OldSend(Self, Name, ...)
 end))
 
-local OldFetch; OldFetch = hookfunction(Network.Send, newcclosure(function(Self, Name, ...)
-    if Name == "Character State Report" then
-        local RandomData = GetStates()
-        local Args = {...}
-
-        for Index = 1, #Args do
-            if Window.Flags["AR2/SSCS"] then
-                if RandomData[Index] == "MoveState" then
-                    Args[Index] = Window.Flags["AR2/MoveState"][1]
-                end
-            end
-            if Window.Flags["AR2/NoSpread"] then
-                if RandomData[Index] == "Zooming" then
-                    Args[Index] = true
-                elseif RandomData[Index] == "FirstPerson" then
-                    Args[Index] = true
-                end
-            end
-        end
-
-        return OldFetch(Self, Name, unpack(Args))
-    end
-
-    return OldFetch(Self, Name, ...)
-end))
-
-setupvalue(CastLocalBullet, 6, function(...)
-    if Window.Flags["AR2/BulletTracer/Enabled"] then
-        local Args = {...}
-        if not Args[7] then return ImpactEffects(...) end
-        Parvus.Utilities.MakeBeam(Args[5], Args[3], Window.Flags["AR2/BulletTracer/Color"])
-    end
-
-    return ImpactEffects(...)
-end)
---[[setupvalue(Bullets.Fire, 3, function(...)
-    if Window.Flags["AR2/NoSpread"] then
-        local Args = {...}
-        
-    end
-
-    return GetSpreadVector(...)
-end)]]
---[[setupvalue(Bullets.Fire, 4, function(...)
-    local Args = {...}
-
-    --ProjectileOrigin = Args[6]
-    --ProjectileSpread = Args[7]
-
-    if math.max(Args[5].FireConfig.PelletCount, 1) == 1 then
-        ProjectileSpread = Args[7]
-        print("projectile spread")
-    end
-
-    if Window.Flags["AR2/NoSpread"] then
-        Args[7] = Args[7] + (ProjectileDirection - Args[7])
-        return CastLocalBullet(unpack(Args))
-    end
-
-    return CastLocalBullet(...)
-end)]]
 setupvalue(Bullets.Fire, 6, function(...)
     if Window.Flags["AR2/Recoil/Enabled"] then
         local ReturnArgs = {GetFireImpulse(...)}
@@ -1213,83 +1152,7 @@ setupvalue(Bullets.Fire, 6, function(...)
 
     return GetFireImpulse(...)
 end)
-setupvalue(VehicleController.Step, 2, function(Self, Throttle, ...)
-    if Window.Flags["AR2/Vehicle/Enabled"] then
-        --[[if Window.Flags["AR2/Vehicle/Fly"] then
-            local MoveDirection = Parvus.Utilities.MovementToDirection()
 
-            Self.BasePart.AssemblyLinearVelocity = Vector3.zero
-            Self.BasePart.CFrame += MoveDirection * Window.Flags["AR2/Fly/Speed"]
-
-            return
-        end]]
-        if not PlayerClass.Character then return end
-        Throttle = Window.Flags["AR2/Vehicle/Instant"]
-        and PlayerClass.Character.MoveVector.Z or -Throttle
-
-        for Index, Wheel in pairs(Self.Wheels:GetChildren()) do
-            local DriveMotor = Wheel:FindFirstChild("Drive Motor")
-            local PrimaryPart = Wheel.PrimaryPart
-
-            if not DriveMotor or not PrimaryPart then continue end
-            PrimaryPart.CustomPhysicalProperties = PhysicalProperties.new(10, 2, 0)
-            DriveMotor.AngularVelocity = Throttle * (Window.Flags["AR2/Vehicle/MaxSpeed"] / (PrimaryPart.Size.Y / 2))
-        end
-
-        return
-    end
-
-    return SetWheelSpeeds(Self, Throttle, ...)
-end)
-setupvalue(VehicleController.Step, 3, function(Self, Steer, Throttle, ...)
-    if Window.Flags["AR2/Vehicle/Enabled"] then
-        if not PlayerClass.Character then return end
-        Steer = Window.Flags["AR2/Vehicle/Instant"]
-        and -PlayerClass.Character.MoveVector.X or -Steer
-
-        for Index, Wheel in pairs(Self.Wheels:GetChildren()) do
-            local WheelPhysics = Self.Config.Physics.Wheels[Wheel.Name]
-            if not WheelPhysics or not WheelPhysics.DoesSteer then continue end
-
-            local DriveMotor = Wheel:FindFirstChild("Drive Motor")
-            if not DriveMotor then continue end
-
-            local Attachment = Wheel.PrimaryPart:FindFirstChild("Attachment")
-            local Angle = math.rad(WheelPhysics.SteerAngle * Steer)
-
-            if Attachment then
-                Angle += math.rad(Attachment.Orientation.Y)
-            end
-
-            DriveMotor.Attachment0.CFrame = CFrame.Angles(0, Angle, 0)
-        end
-
-        return
-    end
-
-    return SetSteerWheels(Self, Steer, Throttle, ...)
-end)
---[[setupvalue(VehicleController.Step, 4, function(Self, Throttle, ...)
-    if Window.Flags["AR2/Vehicle/Enabled"] then
-        if not PlayerClass.Character then return end
-        --Throttle = Window.Flags["AR2/Vehicle/Instant"]
-        --and PlayerClass.Character.MoveVector.Z or -Throttle
-
-        local Mass = 0
-        for Index, Descendant in pairs(Self.Instance:GetDescendants()) do
-            if not Descendant:IsA("BasePart") then continue end
-            Mass += Descendant:GetMass()
-        end
-
-        --local Velocity = Self.BasePart.AssemblyLinearVelocity
-        --Throttle = math.abs(Throttle) * Window.Flags["AR2/Vehicle/MaxSpeed"]
-        Self.BasePart.AssemblyLinearVelocity += Vector3.new(0, -1, 0) * Mass / 200
-
-        return
-    end
-
-    return ApplyDragForce(Self, Throttle, ...)
-end)]]
 setupvalue(Firearm, 7, function(...)
     if Window.Flags["AR2/InstantReload"] then
         local Args = {...}
@@ -1352,79 +1215,10 @@ local OldFire; OldFire = hookfunction(Bullets.Fire, newcclosure(function(Self, .
 
     return OldFire(Self, ...)
 end))
-
--- Old Recoil Control
---[[local OldPost = Animators.Post
-Animators.Post = function(Self, Name, ...) local Args = {...}
-    if Window.Flags["AR2/Recoil/Enabled"] and Name == "FireImpulse" then
-        Args[1][1] = Args[1][1] * (Window.Flags["AR2/Recoil/ShiftForce"] / 100)
-        Args[1][2] = Args[1][2] * (Window.Flags["AR2/Recoil/RollBias"] / 100)
-        Args[1][3] = Args[1][3] * (Window.Flags["AR2/Recoil/RaiseForce"] / 100)
-        Args[1][4] = Args[1][4] * (Window.Flags["AR2/Recoil/SlideForce"] / 100)
-        Args[1][5] = Args[1][5] * (Window.Flags["AR2/Recoil/KickUpForce"] / 100)
-    end return OldPost(Self, Name, unpack(Args))
-end]]
-local OldFlinch; OldFlinch = hookfunction(CharacterCamera.Flinch, newcclosure(function(Self, ...)
-    if Window.Flags["AR2/NoFlinch"] then return end
-    return OldFlinch(Self, ...)
-end))
---[[local OldSwimCheckCast = Raycasting.SwimCheckCast
-Raycasting.SwimCheckCast = function(Self, ...)
-    if Window.Flags["AR2/UseInWater"] then return nil end
-    return OldSwimCheckCast(Self, ...)
-end]]
-local OldPlayAnimation; OldPlayAnimation = hookfunction(Animators.PlayAnimation, newcclosure(function(Self, Path, ...)
-    if Path == "Actions.Fall Impact" and Window.Flags["AR2/NoFallImpact"] then return end
-    return OldPlayAnimation(Self, Path, ...)
-end))
--- Old Vehicle Mod
---[[local OldVC = VehicleController.new
-VehicleController.new = function(...)
-    local ReturnArgs = {OldVC(...)}
-
-    local OldStep = ReturnArgs[1].Step
-    ReturnArgs[1].Step = function(Self, ...)
-        if Window.Flags["AR2/Vehicle/Enabled"] then
-            local MoveVector = PlayerClass.Character.MoveVector
-            Self.ThrottleSolver.Position = -MoveVector.Z
-            * Window.Flags["AR2/Vehicle/Speed"] / 100
-            Self.SteerSolver.Position = MoveVector.X
-            * Window.Flags["AR2/Vehicle/Steer"] / 100
-
-            --Self.ThrottleSolver.Speed = Window.Flags["AR2/Vehicle/Speed"]
-            --Self.ThrottleSolver.Damping = Window.Flags["AR2/Vehicle/Damping"]
-            --Self.ThrottleSolver.Velocity = Window.Flags["AR2/Vehicle/Velocity"]
-        end
-
-        return OldStep(Self, ...)
-    end
-
-    return unpack(ReturnArgs)
-end]]
-
-local OldCD; OldCD = hookfunction(Events["Character Dead"], newcclosure(function(...)
-    if Window.Flags["AR2/FastRespawn"] then
-        task.spawn(function() SetIdentity(2)
-            PlayerClass:UnloadCharacter()
-            Interface:Hide("Reticle")
-            task.wait(0.5)
-            PlayerClass:LoadCharacter()
-        end)
-    end
-
-    return OldCD(...)
-end))
 local OldLSU; OldLSU = hookfunction(Events["Lighting State Update"], newcclosure(function(Data, ...)
     LightingState = Data
     OldBaseTime = LightingState.BaseTime
-    --print("Lighting State Updated")
     return OldLSU(Data, ...)
-end))
-local OldSquadUpdate; OldSquadUpdate = hookfunction(Events["Squad Update"], newcclosure(function(Data, ...)
-    SquadData = Data
-    --print(repr(SquadData))
-    --print("Squad Updated")
-    return OldSquadUpdate(Data, ...)
 end))
 local OldICA; OldICA = hookfunction(Events["Inventory Container Added"], newcclosure(function(Id, Data, ...)
     if not Window.Flags["AR2/ESP/Items/Containers/Enabled"] then return OldICA(Id, Data, ...) end
