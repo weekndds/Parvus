@@ -72,10 +72,6 @@ local AnimatedReload = getupvalue(Firearm, 7)
 local SetWheelSpeeds = getupvalue(VehicleController.Step, 2)
 local SetSteerWheels = getupvalue(VehicleController.Step, 3)
 --local ApplyDragForce = getupvalue(VehicleController.Step, 4)
-
-local Effects = getupvalue(CastLocalBullet, 2)
-local Sounds = getupvalue(CastLocalBullet, 3)
-local ImpactEffects = getupvalue(CastLocalBullet, 6)
 --local TryRicochet = getupvalue(CastLocalBullet, 10)
 
 if type(Events) == "function" then
@@ -1102,23 +1098,6 @@ local function HookCharacter(Character)
 
         return OldJump(Self, ...)
     end))
-    local OldToolAction; OldToolAction = hookfunction(Character.Actions.ToolAction, newcclosure(function(Self, ...)
-        if Window.Flags["AR2/UnlockFiremodes"] then
-            if not Self.EquippedItem then return OldToolAction(Self, ...) end
-            local FireModes = Self.EquippedItem.FireModes
-            if not FireModes then return OldToolAction(Self, ...) end
-
-            for Index, Mode in ipairs({"Semiautomatic", "Automatic", "Burst"}) do
-                if not table.find(FireModes, Mode) then
-                    setreadonly(FireModes, false)
-                    table.insert(FireModes, Mode)
-                    setreadonly(FireModes, true)
-                end
-            end
-        end
-
-        return OldToolAction(Self, ...)
-    end))
 end
 
 local OldIndex, OldNamecall = nil, nil
@@ -1214,39 +1193,6 @@ local OldFire; OldFire = hookfunction(Bullets.Fire, newcclosure(function(Self, .
     --ProjectileDirection2 = Args[5]
 
     return OldFire(Self, ...)
-end))
-local OldLSU; OldLSU = hookfunction(Events["Lighting State Update"], newcclosure(function(Data, ...)
-    LightingState = Data
-    OldBaseTime = LightingState.BaseTime
-    return OldLSU(Data, ...)
-end))
-local OldICA; OldICA = hookfunction(Events["Inventory Container Added"], newcclosure(function(Id, Data, ...)
-    if not Window.Flags["AR2/ESP/Items/Containers/Enabled"] then return OldICA(Id, Data, ...) end
-
-    --print(Data.Type)
-
-    if Data.Type ~= "Corpse" or Data.Type ~= "Vehicle" then
-        if Data.WorldPosition and Length(Data.Occupants) > 0 then
-            AddObject:Fire(Data.Id, CIIC(Data), Data.WorldPosition,
-            "AR2/ESP/Items", "AR2/ESP/Items/Containers", Window.Flags)
-        end
-    end
-
-    return OldICA(Id, Data, ...)
-end))
-local OldCC; OldCC = hookfunction(Events["Container Changed"], newcclosure(function(Data, ...)
-    if not Window.Flags["AR2/ESP/Items/Containers/Enabled"] then return OldCC(Data, ...) end
-
-    RemoveObject:Fire(Data.Id)
-
-    if Data.Type ~= "Corpse" or Data.Type ~= "Vehicle" then
-        if Data.WorldPosition and Length(Data.Occupants) > 0 then
-            AddObject:Fire(Data.Id, CIIC(Data), Data.WorldPosition,
-            "AR2/ESP/Items", "AR2/ESP/Items/Containers", Window.Flags)
-        end
-    end
-
-    return OldCC(Data, ...)
 end))
 
 if PlayerClass.Character then
